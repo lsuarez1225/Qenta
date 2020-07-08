@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<head>
+	<title>Test Luis Suárez</title>
+	<script>
+	
+		// Variable global que contiene la información del servicio REST.
+		var datos;
+	
+		function imprimirFormulario () {
+			imprimirFiltros();
+			generarListado();
+		}
+	
+		// Recorre el objeto datos para imprimir la informaicón.
+		function generarListado (textoApellidos) {
+			
+			mostrarCargue(); // Muestra el texto de 'En Carga'
+			
+			var html = '<section class=\'contenedor\'>';
+			
+			for (i in datos) {
+			
+				// Bandera que determina si se imprime la fila o no.
+				var imprimir = 1;
+				
+				var id = datos[i]['id'];
+				var nombre = datos[i]['first_name'];
+				var apellidos = datos[i]['last_name'];
+				
+				// Si se está filtrando por apellido, compara el texto con el recorrido en el loop para determinar si se imprimie o no.
+				if (textoApellidos != undefined && textoApellidos != '') {
+					if (apellidos.toLowerCase().includes(textoApellidos.toLowerCase())) {
+						imprimir = 1;
+					}
+					else {
+						imprimir = 0;
+					}
+				}
+				
+				// Crea el html para imprimir.
+				if (imprimir) {
+					html += '<div class=\'fila\' onclick="cargarDetalle('+id+')"><div class=\'columna\'>'+id+'</div><div class=\'columna\'>'+apellidos+' '+nombre+'</div></div>';
+					html += '<div class="divDetalle" id="divDetalle_'+id+'"></div>';
+				}
+			}
+			
+			html += '</section>';
+			
+			// Imprime la variable html en la página.
+			document.getElementById('divResultado').innerHTML = html;
+		}
+		
+		// Función que llama al servicio REST para un jugador específico.
+		async function cargarDetalle (idJugador) {
+			const response = await fetch('https://www.balldontlie.io/api/v1/players/'+idJugador);
+			const objetoRespuesta = await response.json();
+			
+			// Im´prime la información obtenida en el div de detalle del jugador (Div inferior).
+			mostrarDetalle(idJugador, objetoRespuesta);
+		}
+		
+		function mostrarDetalle (idJugador, objetoRespuesta) {
+			
+			var nombre = objetoRespuesta['first_name'];
+			var apellidos = objetoRespuesta['last_name'];
+			
+			var posicion = objetoRespuesta['position'];
+			var alturaPies = objetoRespuesta['height_feet'];
+			var alturaPulgadas = objetoRespuesta['height_inches'];
+			var peso = objetoRespuesta['weight_pounds'];
+			
+			var datosEquipo = objetoRespuesta['team'];
+			var idEquipo = datosEquipo['id'];
+			var abreviacion = datosEquipo['abbreviation'];
+			var ciudad = datosEquipo['city'];
+			
+			var html = '<div>Posición:<input type="text" onBlur="guardarDatos('+idJugador+', "position", this.value)" value="'+posicion+'">|Altura en pies:<input type="text" onBlur="guardarDatos('+idJugador+',"height_feet", this.value)" value="'+alturaPies+'">|Altura en pulgadas:<input type="text" onBlur="guardarDatos('+idJugador+', "height_inches", this.value)" value="'+alturaPulgadas+'">|Peso en libras:<input type="text" onBlur="guardarDatos('+idJugador+', "weight_pounds", this.value)" value="'+peso+'">';
+			
+			var divDetalle = document.getElementById('divDetalle_'+idJugador);
+			divDetalle.innerHTML = html;
+		}
+		
+		// Almacena los datos en almacenamiento local.
+		function guardarDatos (idJugador, idCampo, valor) {
+			// Almacena la información por jugador_campo.
+			localStorage.setItem(idJugador+"_"+idCampo, valor);
+		}
+		
+		// Se llama mediante el cambio de texto en el elemento de filtro de apellido.
+		function filtrarDatos () {
+			var textoIngresado = document.getElementById('txtFiltroApellido').value;
+			generarListado(textoIngresado);
+		}
+		
+		// IMprime un texto que indoica que está cargando.
+		function mostrarCargue () {
+			document.getElementById('divResultado').innerText = 'Cargando...';
+		}
+		
+		// Imprime el campo de filtro por apellido.
+		function imprimirFiltros () {
+			var html = '<div class="contenedorFiltros"><label for="txtFiltroApellido">Filtro por Apellido:</label><input type="text" placeholder="Apellido" id="txtFiltroApellido" onkeyup="filtrarDatos();" /></div>';
+			document.getElementById('contenedorFiltros').innerHTML = html;
+		}
+		
+		// Función para llamar al servicio REST.
+		async function consumirAPI (idJugador) {
+		
+			mostrarCargue();
+			const response = await fetch('https://www.balldontlie.io/api/v1/players');
+			const objetoRespuesta = await response.json();
+			datos = objetoRespuesta.data;
+			document.getElementById('divResultado').innerText = 'OK!';
+		}
+		
+	</script>
+	<style>
+	.fila {
+		display: block;
+		border: solid #b9b9b9 1px;
+		margin: 5px 0px;
+		border-radius: 3px;
+	}
+
+	.columna {
+		display: inline-block;
+		margin: 0 5px;
+	}
+	
+	section.contenedor {
+		border: solid 1px gray;
+		padding: 5px;
+		margin: 10px auto;
+		font-family: Helvetica, Arial;
+		font-size: 12px;
+	}
+	
+	.fila:hover {
+		background: beige;
+		cursor: pointer;
+	}
+	
+	.divDetalle input[type='text'] {
+		width: 40px;
+	}
+	</style>
+</head>
+<body>
+	<input type="button" value="Cargar Datos" onclick="consumirAPI();" />
+	<input type="button" value="Generar Listado" onclick="imprimirFormulario();" />
+	
+	<div id="contenedorFiltros"></div>
+	
+	<div id="divResultado"></div>
+</body>
+</html>
